@@ -26,13 +26,13 @@ function App() {
 
       <section className="grid">
         <Card title="Today" items={["Morning summary", "Calendar view", "Priority to-do list"]} />
-        <Card title="Calendar" items={["Month / week / day views", "Google sync", "Apple / iCloud sync"]} />
+        <Card title="Calendar" items={["Month / week / day views", "Apple Calendar", "iCloud sync"]} />
         <Card title="Chores" items={["Assigned tasks", "Points", "Leaderboard"]} />
         <Card title="Meals" items={["Meal ideas", "Weekly planner", "Grocery links"]} />
         <Card title="Grocery" items={["Quick add", "Checklist", "Shared list"]} />
         <Card title="Photos" items={["Shared folder", "Slideshow", "Idle photo frame mode"]} />
         <Card title="Weather" items={["Forecast", "Daily summary", "Outdoor planning"]} />
-        <Card title="Setup" items={["One QR setup", "Family members", "Remote access"]} />
+        <Card title="Setup" items={["One QR setup", "Apple account", "Remote access"]} />
       </section>
     </main>
   );
