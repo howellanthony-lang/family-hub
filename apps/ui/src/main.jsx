@@ -2,6 +2,13 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import './style.css';
 
+function getGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 18) return 'Good afternoon';
+  return 'Good evening';
+}
+
 function App() {
   const now = new Date();
   const today = now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
@@ -11,7 +18,7 @@ function App() {
       <section className="hero">
         <div>
           <p className="eyebrow">Family Hub</p>
-          <h1>Good day, Mando3</h1>
+          <h1>{getGreeting()}</h1>
           <p className="date">{today}</p>
         </div>
         <div className="time">{now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</div>
