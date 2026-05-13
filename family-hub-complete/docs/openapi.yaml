@@ -1,0 +1,391 @@
+openapi: 3.1.0
+info:
+  title: Family Hub API
+  version: 1.0.0
+  description: |
+    Local-first family organizer API running on a Raspberry Pi.
+    Manages calendar events, chores, meals, grocery lists and calendar sync
+    with Google Calendar and Apple iCloud.
+
+    ## Base URLs
+    - **Local (same WiFi):** `http://192.168.x.x:3001`
+    - **Remote (Tailscale):** `https://family-hub.your-ts-net.ts.net:3001`
+    - **Remote (Cloudflare):** `https://api.your-domain.com`
+
+    ## Authentication
+    Pass your API key in the header:
+    ```
+    X-API-Key: your_api_key_here
+    ```
+    API keys are configured in `.env` on the Pi. Set `API_KEYS=key1,key2`.
+    Local requests from `localhost` are always allowed without a key.
+
+servers:
+  - url: http://localhost:3001
+    description: Local dev / same machine
+  - url: http://192.168.1.100:3001
+    description: Local network (replace with your Pi's IP)
+
+security:
+  - ApiKeyAuth: []
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+  schemas:
+    Event:
+      type: object
+      properties:
+        id:          { type: string, format: uuid }
+        title:       { type: string, example: "School pickup" }
+        owner:       { type: string, example: "Mom", enum: [Mom, Dad, Emma, Jack, Family] }
+        source:      { type: string, example: "local", enum: [local, google, apple, webcal] }
+        source_uid:  { type: string, description: "UID from external calendar source" }
+        start:       { type: string, format: date-time }
+        end:         { type: string, format: date-time }
+        description: { type: string }
+        location:    { type: string }
+        created_at:  { type: string, format: date-time }
+      required: [id, title, owner, start, end]
+
+    NewEvent:
+      type: object
+      properties:
+        title:  { type: string, example: "Dentist appointment" }
+        owner:  { type: string, example: "Emma" }
+        start:  { type: string, format: date-time, example: "2026-04-25T14:00:00Z" }
+        end:    { type: string, format: date-time, example: "2026-04-25T15:00:00Z" }
+      required: [title, start]
+
+    Chore:
+      type: object
+      properties:
+        id:           { type: string, format: uuid }
+        title:        { type: string, example: "Vacuum living room" }
+        assignee:     { type: string, example: "Jack" }
+        due_date:     { type: string, format: date }
+        points:       { type: integer, minimum: 1, maximum: 20 }
+        status:       { type: string, enum: [open, done] }
+        completed_at: { type: string, format: date-time }
+        created_at:   { type: string, format: date-time }
+
+    NewChore:
+      type: object
+      properties:
+        title:    { type: string, example: "Tidy bedroom" }
+        assignee: { type: string, example: "Emma" }
+        due_date: { type: string, format: date, example: "2026-04-26" }
+        points:   { type: integer, example: 5 }
+      required: [title]
+
+    Meal:
+      type: object
+      properties:
+        id:        { type: string, format: uuid }
+        date:      { type: string, format: date }
+        meal_type: { type: string, enum: [breakfast, lunch, dinner] }
+        recipe:    { type: string, example: "Spaghetti Bolognese" }
+        notes:     { type: string }
+
+    NewMeal:
+      type: object
+      properties:
+        recipe:    { type: string, example: "Chicken stir fry" }
+        meal_type: { type: string, enum: [breakfast, lunch, dinner], default: dinner }
+        date:      { type: string, format: date }
+        notes:     { type: string }
+      required: [recipe]
+
+    GroceryItem:
+      type: object
+      properties:
+        id:         { type: string, format: uuid }
+        name:       { type: string, example: "Oat milk" }
+        quantity:   { type: string, example: "2" }
+        checked:    { type: boolean }
+        created_at: { type: string, format: date-time }
+
+    NewGroceryItem:
+      type: object
+      properties:
+        name:     { type: string, example: "Bread" }
+        quantity: { type: string, example: "1" }
+      required: [name]
+
+    HealthResponse:
+      type: object
+      properties:
+        ok:      { type: boolean }
+        service: { type: string }
+        google:  { type: boolean }
+        apple:   { type: boolean }
+        webcal:  { type: object, properties: { connected: { type: boolean }, feeds: { type: integer } } }
+
+    SyncResponse:
+      type: object
+      properties:
+        synced: { type: integer, description: "Number of events synced" }
+
+    Error:
+      type: object
+      properties:
+        error: { type: string }
+
+paths:
+
+  /api/health:
+    get:
+      summary: Health check
+      description: Returns API status and integration connection states.
+      security: []
+      tags: [System]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HealthResponse' }
+
+  /api/events:
+    get:
+      summary: List all events
+      description: Returns all calendar events, including those synced from Google, Apple and webcal feeds.
+      tags: [Events]
+      responses:
+        '200':
+          description: Array of events
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Event' }
+
+    post:
+      summary: Create an event
+      description: Creates a local event and pushes it to connected Google/Apple calendars automatically.
+      tags: [Events]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NewEvent' }
+            example:
+              title: "Parents evening"
+              owner: "Family"
+              start: "2026-05-01T18:00:00Z"
+              end:   "2026-05-01T19:30:00Z"
+      responses:
+        '201':
+          description: Created event
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Event' }
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /api/chores:
+    get:
+      summary: List all chores
+      tags: [Chores]
+      responses:
+        '200':
+          description: Array of chores
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Chore' }
+
+    post:
+      summary: Create a chore
+      tags: [Chores]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NewChore' }
+      responses:
+        '201':
+          description: Created chore
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Chore' }
+
+  /api/chores/{id}/complete:
+    post:
+      summary: Mark a chore as complete
+      tags: [Chores]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Updated chore
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Chore' }
+        '404':
+          description: Chore not found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /api/meals/week:
+    get:
+      summary: Get this week's meal plan
+      tags: [Meals]
+      responses:
+        '200':
+          description: Meals for the current week
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  range:
+                    type: object
+                    properties:
+                      start: { type: string, format: date }
+                      end:   { type: string, format: date }
+                  meals:
+                    type: array
+                    items: { $ref: '#/components/schemas/Meal' }
+
+  /api/meals:
+    post:
+      summary: Add a meal to the plan
+      tags: [Meals]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NewMeal' }
+      responses:
+        '201':
+          description: Created meal
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Meal' }
+
+  /api/grocery/items:
+    get:
+      summary: List grocery items
+      tags: [Grocery]
+      responses:
+        '200':
+          description: Array of grocery items
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/GroceryItem' }
+
+    post:
+      summary: Add a grocery item
+      tags: [Grocery]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NewGroceryItem' }
+      responses:
+        '201':
+          description: Created item
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GroceryItem' }
+
+  /api/integrations/status:
+    get:
+      summary: Integration connection status
+      tags: [Integrations]
+      responses:
+        '200':
+          description: Status of all integrations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  google: { type: object, properties: { connected: { type: boolean } } }
+                  apple:  { type: object, properties: { connected: { type: boolean } } }
+                  webcal: { type: object, properties: { connected: { type: boolean }, feeds: { type: integer } } }
+
+  /api/integrations/google/auth/start:
+    post:
+      summary: Start Google OAuth device flow
+      description: Returns a code and URL to display on screen. The user approves on their phone.
+      tags: [Integrations]
+      responses:
+        '200':
+          description: Device flow details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  verification_url: { type: string, format: uri }
+                  user_code:        { type: string, example: "ABCD-1234" }
+                  expires_in:       { type: integer }
+
+  /api/integrations/google/sync:
+    post:
+      summary: Force Google Calendar sync
+      tags: [Integrations]
+      responses:
+        '200':
+          description: Sync result
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SyncResponse' }
+
+  /api/integrations/apple/calendars:
+    get:
+      summary: Discover Apple CalDAV calendars
+      tags: [Integrations]
+      responses:
+        '200':
+          description: List of available calendars
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  calendars:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        url:  { type: string }
+                        name: { type: string }
+
+  /api/integrations/apple/sync:
+    post:
+      summary: Force Apple CalDAV sync
+      tags: [Integrations]
+      responses:
+        '200':
+          description: Sync result
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SyncResponse' }
+
+  /api/integrations/webcal/sync:
+    post:
+      summary: Force webcal/public iCal sync
+      tags: [Integrations]
+      responses:
+        '200':
+          description: Sync result
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SyncResponse' }
