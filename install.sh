@@ -16,7 +16,8 @@ log "Updating system packages…"
 sudo apt-get update -qq || warn "apt update failed — continuing"
 
 log "Installing required system packages…"
-sudo apt-get install -y -qq curl git python3 unclutter chromium-browser || \
+sudo apt-get install -y -qq curl git python3 unclutter x11-xserver-utils chromium-browser || \
+  sudo apt-get install -y -qq curl git python3 unclutter x11-xserver-utils chromium || \
   sudo apt-get install -y -qq curl git python3 || \
   warn "Some packages could not be installed — check manually"
 
@@ -51,6 +52,9 @@ ok "UI built"
 mkdir -p "$INSTALL_DIR/apps/api/data"
 ok "Data directory ready"
 
+chmod +x "$INSTALL_DIR/infra/kiosk-launch.sh" 2>/dev/null || true
+chmod +x "$INSTALL_DIR/infra/doctor.sh" 2>/dev/null || true
+
 log "Installing API systemd service…"
 sudo tee /etc/systemd/system/family-hub-api.service > /dev/null << SVCEOF
 [Unit]
@@ -83,7 +87,7 @@ After=family-hub-api.service
 Type=simple
 User=$USER
 WorkingDirectory=$INSTALL_DIR/apps/ui/dist
-ExecStart=/usr/bin/python3 -m http.server 5173
+ExecStart=/usr/bin/python3 -m http.server 5173 --bind 0.0.0.0
 Restart=always
 RestartSec=3
 StandardOutput=journal
@@ -122,5 +126,6 @@ PI_IP=$(hostname -I | awk '{print $1}')
 
 echo -e "\n${G}${W}✓ Family Hub installed!${X}\n"
 echo -e "  ${W}Dashboard:${X} http://$PI_IP:5173"
-echo -e "  ${W}API:${X}       http://$PI_IP:3001"
+echo -e "  ${W}Setup:${X}     http://$PI_IP:3001/setup"
+echo -e "  ${W}API:${X}       http://$PI_IP:3001/api/health"
 echo -e "\nNext: sudo reboot\n"
