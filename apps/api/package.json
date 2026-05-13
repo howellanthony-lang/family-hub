@@ -1,1 +1,1 @@
-{"name":"family-hub-api","version":"1.0.0","type":"module","private":true,"scripts":{"start":"node server.mjs"},"dependencies":{"cors":"^2.8.5","express":"^4.18.3"}}
+{"name":"family-hub-api","version":"1.0.0","type":"module","private":true,"scripts":{"start":"node server.mjs"},"dependencies":{"cors":"^2.8.5","express":"^4.18.3","qrcode":"^1.5.4"}}
