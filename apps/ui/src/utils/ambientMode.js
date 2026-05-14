@@ -15,3 +15,15 @@ export function getAmbientMode() {
 
   return 'Night';
 }
+
+export function getEffectiveAmbientMode(preference = 'auto') {
+  if (preference === 'day') return 'Day';
+  if (preference === 'night') return 'Night';
+
+  return getAmbientMode();
+}
+
+export function getModeLabel(preference = 'auto', effectiveMode = getAmbientMode()) {
+  if (preference === 'auto') return `Auto • ${effectiveMode} Mode`;
+  return `${effectiveMode} Mode`;
+}
