@@ -1,6 +1,7 @@
 import PageTitle from '../components/PageTitle';
 import SetupCard from '../components/SetupCard';
 import GlassCard from '../components/GlassCard';
+import AppleCalendarSetup from '../components/AppleCalendarSetup';
 
 const displayModes = [
   ['auto', 'Auto'],
@@ -35,12 +36,9 @@ export default function SettingsScreen({ displayModePreference, setDisplayModePr
         </div>
       </GlassCard>
 
-      <div className="quad-grid">
-        <SetupCard
-          title="Connect Apple Calendar"
-          text="Use your iCloud email and an Apple app-specific password. This is not your normal Apple ID password."
-        />
+      <AppleCalendarSetup />
 
+      <div className="quad-grid">
         <SetupCard
           title="Admin PIN"
           text="Protect settings, integrations, backups and paired devices."
