@@ -1,15 +1,19 @@
 {
   "name": "family-hub-pi",
-  "version": "1.0.0",
+  "version": "1.7.0",
   "private": true,
   "scripts": {
     "setup": "npm install --prefix apps/api && npm install --prefix apps/ui && npm run build --prefix apps/ui",
     "dev": "concurrently \"node --env-file=.env apps/api/server.mjs\" \"npm run dev --prefix apps/ui\"",
     "start:api": "node --env-file=.env apps/api/server.mjs",
     "start:ui": "python3 -m http.server 5173 --directory apps/ui/dist",
+    "update": "bash infra/scripts/update-family-hub.sh",
     "build:ui": "npm run build --prefix apps/ui",
     "docker:up": "docker compose -f infra/docker-compose.yml up -d",
-    "install:pi": "bash install.sh"
+    "install:pi": "bash install.sh",
+    "backup": "bash infra/scripts/backup-family-hub.sh",
+    "doctor": "bash infra/scripts/doctor-family-hub.sh",
+    "smoke:test": "bash infra/scripts/smoke-test-family-hub.sh"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
