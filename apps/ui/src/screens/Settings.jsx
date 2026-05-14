@@ -1,13 +1,39 @@
 import PageTitle from '../components/PageTitle';
 import SetupCard from '../components/SetupCard';
+import GlassCard from '../components/GlassCard';
 
-export default function SettingsScreen() {
+const displayModes = [
+  ['auto', 'Auto'],
+  ['day', 'Day'],
+  ['night', 'Night'],
+];
+
+export default function SettingsScreen({ displayModePreference, setDisplayModePreference }) {
   return (
     <div className="screen page-enter">
       <PageTitle
         title="Settings"
         subtitle="Local-first setup and trusted household access."
       />
+
+      <GlassCard>
+        <p className="eyebrow">Display</p>
+        <h2>Display Mode</h2>
+        <p className="muted">
+          Choose Auto for time-based ambience, Day for a brighter kitchen display, or Night for a calmer low-light screen.
+        </p>
+        <div className="mode-toggle">
+          {displayModes.map(([value, label]) => (
+            <button
+              key={value}
+              className={displayModePreference === value ? 'active' : ''}
+              onClick={() => setDisplayModePreference(value)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </GlassCard>
 
       <div className="quad-grid">
         <SetupCard
