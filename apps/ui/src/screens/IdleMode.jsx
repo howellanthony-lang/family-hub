@@ -1,7 +1,13 @@
+import { useEffect, useState } from 'react';
 import GlassCard from '../components/GlassCard';
 
 export default function IdleMode({ mockData, ambientMode }) {
-  const time = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  const fmt = () => new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  const [time, setTime] = useState(fmt);
+  useEffect(() => {
+    const id = setInterval(() => setTime(fmt()), 60000);
+    return () => clearInterval(id);
+  }, []);
   const nextEvent = mockData.events[0];
 
   return (

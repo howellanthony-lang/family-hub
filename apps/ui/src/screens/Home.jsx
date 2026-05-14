@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import GlassCard from '../components/GlassCard';
 import StatusChip from '../components/StatusChip';
 import CameraCard from '../components/CameraCard';
@@ -6,18 +7,29 @@ import RoomCard from '../components/RoomCard';
 import SectionHeader from '../components/SectionHeader';
 import { getGreeting } from '../utils/ambientMode';
 
+function useMinuteClock() {
+  const fmt = () => new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  const [time, setTime] = useState(fmt);
+  useEffect(() => {
+    const id = setInterval(() => setTime(fmt()), 60000);
+    return () => clearInterval(id);
+  }, []);
+  return time;
+}
+
 export default function HomeScreen({ mockData, today, ambientMode }) {
+  const time = useMinuteClock();
   return (
     <div className="screen home-screen page-enter">
       <header className="hero-row">
         <div>
-          <p className="eyebrow">Family Hub • {ambientMode} Mode</p>
+          <p className="eyebrow">Family Hub • {ambientMode}</p>
           <h1>{getGreeting()}</h1>
           <p className="context-line">{today} • 18°C • 2 events today • Dinner planned</p>
         </div>
         <GlassCard className="time-card">
           <span>Now</span>
-          <strong>{new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</strong>
+          <strong>{time}</strong>
         </GlassCard>
       </header>
 

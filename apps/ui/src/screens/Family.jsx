@@ -3,7 +3,7 @@ import ListCard from '../components/ListCard';
 
 export default function FamilyScreen({ mockData }) {
   return (
-    <div className="screen">
+    <div className="screen page-enter">
       <PageTitle
         title="Family"
         subtitle="Chores, meals, grocery and notes in one calm place."

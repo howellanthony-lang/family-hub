@@ -14,7 +14,7 @@ export default function Onboarding({ onComplete, ambientMode }) {
   return (
     <div className="screen onboarding-screen page-enter">
       <GlassCard className="onboarding-card">
-        <p className="eyebrow">Family Hub • {ambientMode} Mode</p>
+        <p className="eyebrow">Family Hub • {ambientMode}</p>
         <h1>Welcome home</h1>
         <p className="context-line">
           Set up your household, connect Apple Calendar and create a calm shared family dashboard.
