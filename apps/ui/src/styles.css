@@ -345,6 +345,95 @@ small,
   color: var(--bg);
 }
 
+.idle-mode {
+  min-height: calc(100vh - 120px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.idle-photo-surface {
+  position: relative;
+  width: 100%;
+  min-height: 72vh;
+  border-radius: 42px;
+  overflow: hidden;
+  background:
+    linear-gradient(rgba(0,0,0,0.18), rgba(0,0,0,0.24)),
+    linear-gradient(135deg, rgba(255,255,255,0.15), rgba(124,163,125,0.12));
+  box-shadow: var(--shadow);
+}
+
+.mode-night .idle-photo-surface {
+  background:
+    linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.52)),
+    linear-gradient(135deg, rgba(255,255,255,0.06), rgba(124,163,125,0.08));
+}
+
+.idle-gradient {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at top left, rgba(255,255,255,0.18), transparent 40%),
+    radial-gradient(circle at bottom right, rgba(124,163,125,0.16), transparent 38%);
+  animation: floatAmbient 18s ease-in-out infinite alternate;
+}
+
+.idle-content {
+  position: relative;
+  z-index: 2;
+  min-height: 72vh;
+  padding: 48px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.idle-content h1 {
+  font-size: clamp(5rem, 12vw, 9rem);
+  margin: 0;
+}
+
+.idle-card {
+  max-width: 420px;
+  align-self: flex-end;
+}
+
+.form-grid {
+  display: grid;
+  gap: 18px;
+  margin: 24px 0;
+}
+
+.form-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-grid input {
+  border: none;
+  border-radius: 18px;
+  min-height: 54px;
+  padding: 0 18px;
+  background: var(--surface-strong);
+  color: var(--text);
+  font: inherit;
+}
+
+.helper-text,
+.status-message {
+  margin-top: 16px;
+}
+
+.status-message.warning {
+  color: #c8893d;
+}
+
+.status-message.success {
+  color: #7ca37d;
+}
+
 @keyframes pageEnter {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
