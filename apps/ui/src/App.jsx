@@ -1,40 +1,36 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import './styles.css';
 
 import { mockData, tabs } from './data/mockData';
 import { getEffectiveAmbientMode, getModeLabel } from './utils/ambientMode';
+import {
+  loadDisplayModePreference,
+  loadOnboardingComplete,
+  saveDisplayModePreference,
+  saveOnboardingComplete,
+} from './services/localSettings';
 
 import BottomDock from './components/BottomDock';
 import HomeScreen from './screens/Home';
 import CalendarScreen from './screens/Calendar';
 import AutomationScreen from './screens/AutomationScreen';
 import FamilyScreen from './screens/Family';
+import PhotosScreen from './screens/PhotosScreen';
 import SettingsScreen from './screens/Settings';
 import Onboarding from './screens/Onboarding';
 
-function PhotosScreen() {
-  return (
-    <div className="screen page-enter">
-      <header className="page-title">
-        <p className="eyebrow">Family Hub</p>
-        <h1>Photos</h1>
-        <p className="context-line">Idle mode becomes a calm family photo frame.</p>
-      </header>
-      <article className="glass-card photo-preview">
-        <div>
-          <p className="eyebrow">Photo Frame</p>
-          <h2>Clock • Weather • Next event</h2>
-          <p>Shared folder slideshow placeholder.</p>
-        </div>
-      </article>
-    </div>
-  );
-}
-
 export default function App() {
   const [activeTab, setActiveTab] = useState('Home');
-  const [onboardingComplete, setOnboardingComplete] = useState(false);
-  const [displayModePreference, setDisplayModePreference] = useState('auto');
+  const [onboardingComplete, setOnboardingComplete] = useState(loadOnboardingComplete());
+  const [displayModePreference, setDisplayModePreference] = useState(loadDisplayModePreference());
+
+  useEffect(() => {
+    saveOnboardingComplete(onboardingComplete);
+  }, [onboardingComplete]);
+
+  useEffect(() => {
+    saveDisplayModePreference(displayModePreference);
+  }, [displayModePreference]);
 
   const today = useMemo(() => new Date().toLocaleDateString('en-GB', {
     weekday: 'long',
