@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { CalendarDays, CheckSquare, CloudSun, Home, ListTodo, Moon, NotebookText, ShoppingCart, Sun, Utensils, Image, Settings, RefreshCcw, Lightbulb, RadioTower, ShieldCheck, Monitor, Users, Bell, Lock, Eye } from 'lucide-react';
+import qrcode from 'qrcode-generator';
 import { api } from './services/apiBase';
 import './styles.css';
 
@@ -154,7 +155,15 @@ function ScreensaverSettings({ settings, setData, data }) {
 function OnboardingScreen({ data, setData }) {
   const [local, setLocal] = useState(data.settings || {});
   const save = async () => { await api('/api/settings', { method:'POST', body: JSON.stringify({ ...local, setupComplete: true }) }); setData(await api('/api/dashboard')); };
-  return <section className="card wide setup"><h3><Users/> Household setup</h3><div className="setup-grid"><label>Family display name<input value={local.householdName || ''} placeholder="The Anthony Family" onChange={e=>setLocal({...local, householdName:e.target.value})}/></label><label>Weather location<input value={local.weatherLocation || ''} placeholder="Wakefield, UK" onChange={e=>setLocal({...local, weatherLocation:e.target.value})}/></label><label>Default calendar view<select value={local.calendarView || 'week'} onChange={e=>setLocal({...local, calendarView:e.target.value})}><option>day</option><option>week</option><option>month</option></select></label><label><input type="checkbox" checked={!!local.appleFirst} onChange={e=>setLocal({...local, appleFirst:e.target.checked})}/> Apple/iCloud first</label><label><input type="checkbox" checked={!!local.requirePinForSettings} onChange={e=>setLocal({...local, requirePinForSettings:e.target.checked})}/> Protect settings with PIN later</label></div><button onClick={save}>Save household setup</button></section>;
+  const shareUrl = data.system?.network?.uiUrl || (typeof window !== 'undefined' ? window.location.origin : '');
+  return <section className="card wide setup"><h3><Users/> Household setup</h3><div className="setup-grid"><label>Family display name<input value={local.householdName || ''} placeholder="The Anthony Family" onChange={e=>setLocal({...local, householdName:e.target.value})}/></label><label>Weather location<input value={local.weatherLocation || ''} placeholder="Wakefield, UK" onChange={e=>setLocal({...local, weatherLocation:e.target.value})}/></label><label>Default calendar view<select value={local.calendarView || 'week'} onChange={e=>setLocal({...local, calendarView:e.target.value})}><option>day</option><option>week</option><option>month</option></select></label><label><input type="checkbox" checked={!!local.appleFirst} onChange={e=>setLocal({...local, appleFirst:e.target.checked})}/> Apple/iCloud first</label><label><input type="checkbox" checked={!!local.requirePinForSettings} onChange={e=>setLocal({...local, requirePinForSettings:e.target.checked})}/> Protect settings with PIN later</label></div><PartnerQr url={shareUrl} /><button onClick={save}>Save household setup</button></section>;
+}
+
+function PartnerQr({ url }) {
+  const qr = qrcode(0, 'M');
+  qr.addData(url);
+  qr.make();
+  return <div className="share-card"><div><h3>Partner access</h3><p className="muted">Scan to open Family Hub on this network.</p><code>{url}</code></div><div className="qr-code" aria-label={`QR code for ${url}`} dangerouslySetInnerHTML={{ __html: qr.createSvgTag(5, 2) }} /></div>;
 }
 
 function ReadinessScreen() {

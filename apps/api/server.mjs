@@ -1,6 +1,7 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import fs from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import ical from 'node-ical';
@@ -130,6 +131,21 @@ async function dbStatus() {
     return { ok: false, error: error.message };
   }
 }
+function getNetworkInfo() {
+  const interfaces = os.networkInterfaces();
+  const addresses = Object.values(interfaces)
+    .flat()
+    .filter(Boolean)
+    .filter(item => item.family === 'IPv4' && !item.internal)
+    .map(item => item.address);
+  const host = addresses[0] || os.hostname();
+  return {
+    hostname: os.hostname(),
+    ip: addresses[0] || '',
+    uiUrl: `http://${host}:5173`,
+    apiUrl: `http://${host}:3001`
+  };
+}
 function isLocalhost(req) {
   const ip = req.ip || '';
   return ip.includes('127.0.0.1') || ip.includes('::1') || ip.includes('localhost');
@@ -155,6 +171,7 @@ app.get('/api/system/status', async () => {
     node: process.version,
     memory: process.memoryUsage(),
     database: await dbStatus(),
+    network: getNetworkInfo(),
     modules: {
       dashboard: true,
       weather: true,
@@ -216,7 +233,7 @@ app.post('/api/integrations/home-assistant/service', async (req, reply) => {
 app.get('/api/dashboard', async () => {
   const db = await readDb();
   const [weather, photos] = await Promise.all([getWeather(db), listPhotos()]);
-  return { ...db, weather, photos };
+  return { ...db, weather, photos, system: { network: getNetworkInfo() } };
 });
 app.get('/api/weather', async () => getWeather(await readDb()));
 app.get('/api/photos', async () => ({ photos: await listPhotos() }));
