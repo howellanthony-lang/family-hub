@@ -106,6 +106,22 @@ Leave Home Assistant values blank until you have a real Home Assistant URL and l
 
 ## Useful checks on the Pi
 
+From PowerShell:
+
+```powershell
+ssh mando3@192.168.1.235
+cd ~/family-hub-github
+git fetch origin
+git switch v1.9-alpha
+git pull --ff-only
+npm run build:ui
+sudo systemctl restart family-hub-api family-hub-ui
+curl http://localhost:3001/api/health
+curl http://localhost:3001/api/dashboard
+systemctl status family-hub-api family-hub-ui shairport-sync --no-pager
+docker ps --filter name=homeassistant
+```
+
 ```bash
 curl http://localhost:3001/api/health
 curl http://localhost:3001/api/system/readiness

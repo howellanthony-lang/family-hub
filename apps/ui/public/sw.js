@@ -1,4 +1,4 @@
-const CACHE = 'family-hub-v1.2';
+const CACHE = 'family-hub-v1.9-api-base';
 const ASSETS = ['/', '/manifest.webmanifest'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting()));
@@ -8,5 +8,9 @@ self.addEventListener('activate', event => {
 });
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
-  event.respondWith(fetch(event.request).catch(() => caches.match(event.request).then(res => res || caches.match('/'))));
+  if (event.request.mode === 'navigate') {
+    event.respondWith(fetch(event.request).catch(() => caches.match('/')));
+    return;
+  }
+  event.respondWith(fetch(event.request).catch(() => caches.match(event.request)));
 });

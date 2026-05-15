@@ -1,13 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { CalendarDays, CheckSquare, CloudSun, Home, ListTodo, Moon, NotebookText, ShoppingCart, Sun, Utensils, Image, Settings, RefreshCcw, Lightbulb, RadioTower, ShieldCheck, Monitor, Users, Bell, Lock, Eye } from 'lucide-react';
+import { api } from './services/apiBase';
 import './styles.css';
-
-const api = async (path, options = {}) => {
-  const res = await fetch(path, { headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }, ...options });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
-};
 
 const days = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
 const defaultScreenSaver = { enabled: true, minutes: 3, showClock: true, showWeather: true, showNextEvent: true, showTasks: true, photoMode: true, nightDim: true };
@@ -27,7 +22,7 @@ function App() {
 
   const load = async () => {
     try { setData(await api('/api/dashboard')); setError(''); }
-    catch (e) { setError('API offline. Showing local shell only.'); }
+    catch (e) { setError(`API offline. ${e.message || 'Showing local shell only.'}`); }
   };
 
   useEffect(() => { load(); }, []);

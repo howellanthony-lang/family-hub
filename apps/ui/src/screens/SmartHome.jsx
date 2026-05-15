@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { api } from '../services/apiBase';
 
 export default function SmartHomeScreen() {
   const [states, setStates] = useState([]);
@@ -7,8 +8,7 @@ export default function SmartHomeScreen() {
   useEffect(() => {
     async function load() {
       try {
-        const res = await fetch('/api/integrations/home-assistant/state');
-        const data = await res.json();
+        const data = await api('/api/integrations/home-assistant/state');
 
         if (data.ok) {
           setStates(data.states || []);
