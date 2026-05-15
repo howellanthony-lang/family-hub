@@ -59,12 +59,17 @@ check_homeassistant_container() {
 curl_json() {
   local url="$1"
   local tmp
+  local attempt
   tmp="$(mktemp)"
-  if curl -fsS --max-time 10 "$url" -o "$tmp"; then
-    node -e "JSON.parse(require('fs').readFileSync(process.argv[1], 'utf8')); console.log('Valid JSON from ${url}');" "$tmp"
-    rm -f "$tmp"
-    return 0
-  fi
+  for attempt in $(seq 1 20); do
+    if curl -fsS --max-time 10 "$url" -o "$tmp"; then
+      node -e "JSON.parse(require('fs').readFileSync(process.argv[1], 'utf8')); console.log('Valid JSON from ${url}');" "$tmp"
+      rm -f "$tmp"
+      return 0
+    fi
+    printf 'Waiting for %s (%s/20)\n' "$url" "$attempt"
+    sleep 1
+  done
   rm -f "$tmp"
   return 1
 }
