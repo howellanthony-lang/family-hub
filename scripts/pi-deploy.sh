@@ -67,6 +67,8 @@ pull_latest() {
 }
 
 build_ui() {
+  npm install --prefix apps/api
+  npm install --prefix apps/ui
   npm run build:ui
 }
 

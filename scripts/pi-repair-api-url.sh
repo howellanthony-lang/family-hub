@@ -52,6 +52,8 @@ check_source_api_helper() {
 }
 
 build_ui() {
+  npm install --prefix apps/api
+  npm install --prefix apps/ui
   npm run build:ui
 }
 
