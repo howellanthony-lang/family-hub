@@ -184,6 +184,35 @@ app.get('/api/integrations/home-assistant/state', async (req, reply) => {
   return { ok: true, states: states.slice(0, 50).map(s => ({ entity_id: s.entity_id, state: s.state, name: s.attributes?.friendly_name })) };
 });
 
+
+app.post('/api/integrations/home-assistant/service', async (req, reply) => {
+  const { domain, service, entity_id } = req.body || {};
+
+  if (!process.env.HOME_ASSISTANT_URL || !process.env.HOME_ASSISTANT_TOKEN) {
+    return reply.code(400).send({ ok: false, error: 'Home Assistant not configured' });
+  }
+
+  if (!domain || !service || !entity_id) {
+    return reply.code(400).send({ ok: false, error: 'Missing domain, service or entity_id' });
+  }
+
+  const response = await fetch(`${process.env.HOME_ASSISTANT_URL.replace(/\/$/, '')}/api/services/${domain}/${service}`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${process.env.HOME_ASSISTANT_TOKEN}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ entity_id })
+  });
+
+  if (!response.ok) {
+    return reply.code(response.status).send({ ok: false, error: 'Home Assistant service call failed' });
+  }
+
+  const result = await response.json().catch(() => []);
+  return { ok: true, result };
+});
+
 app.get('/api/dashboard', async () => {
   const db = await readDb();
   const [weather, photos] = await Promise.all([getWeather(db), listPhotos()]);
