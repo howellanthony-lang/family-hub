@@ -143,7 +143,20 @@ function SmartHomeScreen() {
   if (error) return <section className="card wide"><h3><RadioTower/> Smart home</h3><p className="muted">{error}</p></section>;
   if (!home) return <section className="card wide">Loading smart home…</section>;
   if (!home.configured) return <section className="card wide smart-empty"><h3><Lightbulb/> Smart home bridge</h3><p>{home.message}</p><p className="muted">Ready for Home Assistant. Add the URL and long-lived token into <code>.env</code>, restart the API, then this becomes your Apple Home-style dashboard.</p></section>;
-  return <div className="grid two">{(home.rooms || []).map(room => <section className="card" key={room.name}><h3>{room.name}</h3><div className="device-grid">{room.devices.map(d => <button key={d.entity_id} className="device-tile" onClick={() => toggle(d.entity_id)}><b>{d.name}</b><span>{d.type} · {d.state}</span></button>)}</div></section>)}<section className="card wide"><h3>Scenes</h3><div className="scene-row">{(home.scenes || []).map(scene => <button key={scene.entity_id} onClick={() => toggle(scene.entity_id)}>{scene.name}</button>)}</div></section></div>;
+  const rooms = home.rooms || [];
+  const scenes = home.scenes || [];
+  const cameras = home.cameras || [];
+  return <div className="smart-dashboard">
+    <section className="hero-card smart-hero"><Home size={38}/><div><p className="eyebrow">Apple Home inspired</p><h2>Home is connected.</h2><p>{rooms.length} room group(s), {scenes.length} scene(s), {cameras.length} camera(s). Controls stay routed through the Family Hub API.</p></div></section>
+    <div className="home-status-grid">{(home.status || []).map(item => <section className={item.active ? 'home-status-card active' : 'home-status-card'} key={item.id}><span>{item.label}</span><strong>{item.value}</strong><small>{item.detail}</small></section>)}</div>
+    <div className="home-group-strip">{(home.groups || []).map(group => <section key={group.id}><b>{group.label}</b><span>{group.count}</span><small>{group.detail}</small></section>)}</div>
+    <div className="section-row"><h2>Cameras</h2><span>{cameras.length ? `${cameras.length} found` : 'No cameras found'}</span></div>
+    {cameras.length ? <div className="camera-grid">{cameras.map(camera => <article className="camera-card" key={camera.entity_id}><div className="camera-preview"><img src={`${camera.snapshotUrl}?t=${Date.now()}`} alt={camera.name} onError={e => { e.currentTarget.style.display = 'none'; }}/><Image size={32}/></div><h3>{camera.name}</h3><p>{camera.state}</p></article>)}</div> : <section className="card wide smart-empty"><h3><Image/> Cameras</h3><p className="muted">No camera or doorbell camera entities are visible from Home Assistant yet. Once one appears as <code>camera.*</code>, Family Hub will show snapshots here.</p></section>}
+    <div className="section-row"><h2>Scenes</h2><span>{scenes.length ? 'Tap to run' : 'No scenes found'}</span></div>
+    <section className="card wide"><div className="scene-row">{scenes.length ? scenes.map(scene => <button key={scene.entity_id} onClick={() => toggle(scene.entity_id)}>{scene.name}</button>) : <p className="muted">Create Home Assistant scenes and they will appear here.</p>}</div></section>
+    <div className="section-row"><h2>Rooms</h2><span>{rooms.length} group(s)</span></div>
+    <div className="grid two">{rooms.map(room => <section className="card" key={room.name}><h3>{room.name}</h3><div className="device-grid">{room.devices.map(d => <button key={d.entity_id} className={d.active ? 'device-tile active' : 'device-tile'} onClick={() => toggle(d.entity_id)}><b>{d.name}</b><span>{d.type} · {d.state}</span></button>)}</div></section>)}</div>
+  </div>;
 }
 
 function ScreensaverSettings({ settings, setData, data }) {

@@ -499,24 +499,98 @@ app.post('/api/integrations/apple/events', async (req, reply) => {
   }
 });
 
+function haDomain(state) {
+  return String(state?.entity_id || '').split('.')[0];
+}
+
+function haName(state) {
+  return state?.attributes?.friendly_name || state?.name || state?.entity_id || 'Device';
+}
+
+function haDevice(state) {
+  const domain = haDomain(state);
+  return {
+    entity_id: state.entity_id,
+    name: haName(state),
+    state: state.state,
+    type: domain,
+    active: ['on', 'open', 'opening', 'unlocked', 'playing', 'home', 'detected'].includes(String(state.state).toLowerCase())
+  };
+}
+
+function haRoomName(state) {
+  const attrs = state.attributes || {};
+  const friendly = haName(state);
+  return String(attrs.area_id || attrs.room || friendly.split(' ')[0] || 'Home').replace(/[_-]+/g, ' ');
+}
+
+function summariseHomeAssistant(states) {
+  const byDomain = (domains) => states.filter(s => domains.includes(haDomain(s)));
+  const lights = byDomain(['light']);
+  const climate = byDomain(['climate', 'weather']);
+  const media = byDomain(['media_player']);
+  const cameras = byDomain(['camera']).map(s => ({ ...haDevice(s), snapshotUrl: `/api/smart-home/camera/${encodeURIComponent(s.entity_id)}/snapshot` }));
+  const security = states.filter(s => {
+    const domain = haDomain(s);
+    const text = `${s.entity_id} ${haName(s)} ${s.attributes?.device_class || ''}`.toLowerCase();
+    return ['lock', 'alarm_control_panel'].includes(domain) || (domain === 'binary_sensor' && /door|window|motion|occupancy|presence|garage|bell|camera|lock/.test(text));
+  });
+  const controllable = states.filter(s => /^(light|switch|climate|sensor|binary_sensor|camera|media_player|lock|cover|fan|alarm_control_panel)\./.test(s.entity_id)).slice(0, 120);
+  const rooms = Object.values(controllable.reduce((acc, state) => {
+    const room = haRoomName(state);
+    acc[room] ||= { name: room, devices: [] };
+    acc[room].devices.push(haDevice(state));
+    return acc;
+  }, {})).sort((a, b) => a.name.localeCompare(b.name));
+  const activeLights = lights.filter(s => s.state === 'on').length;
+  const activeSecurity = security.filter(s => ['on', 'open', 'unlocked', 'detected'].includes(String(s.state).toLowerCase())).length;
+  const activeMedia = media.filter(s => ['playing', 'on'].includes(String(s.state).toLowerCase())).length;
+  const weather = climate.find(s => haDomain(s) === 'weather');
+  const firstClimate = climate.find(s => haDomain(s) === 'climate');
+  const temperature = firstClimate?.attributes?.current_temperature ?? weather?.attributes?.temperature;
+  const status = [
+    { id: 'climate', label: 'Climate', value: temperature ? `${temperature}°C` : (weather?.state || firstClimate?.state || 'Ready'), detail: weather?.state || firstClimate?.state || 'Comfort status', active: Boolean(temperature || weather || firstClimate) },
+    { id: 'lights', label: 'Lights', value: activeLights ? `${activeLights} on` : 'All off', detail: lights.length ? `${lights.length} light(s) found` : 'No lights found', active: activeLights > 0 },
+    { id: 'security', label: 'Security', value: activeSecurity ? `${activeSecurity} alert` : 'Secure', detail: security.length ? `${security.length} sensor(s) watched` : 'No security sensors found', active: activeSecurity > 0 },
+    { id: 'media', label: 'Media', value: activeMedia ? `${activeMedia} active` : 'Quiet', detail: media.length ? `${media.length} player(s) found` : 'No speakers found', active: activeMedia > 0 }
+  ];
+  const groups = [
+    { id: 'lights', label: 'Lights', count: lights.length, detail: activeLights ? `${activeLights} on` : 'Ready' },
+    { id: 'climate', label: 'Climate', count: climate.length, detail: temperature ? `${temperature}°C` : 'Ready' },
+    { id: 'security', label: 'Security', count: security.length, detail: activeSecurity ? 'Check sensors' : 'Secure' },
+    { id: 'cameras', label: 'Cameras', count: cameras.length, detail: cameras.length ? 'Snapshot ready' : 'None found' }
+  ];
+  const scenes = states.filter(s => s.entity_id.startsWith('scene.')).slice(0, 20).map(s => ({ entity_id: s.entity_id, name: haName(s) }));
+  return { rooms, scenes, cameras, status, groups };
+}
+
 app.get('/api/smart-home/summary', async (req, reply) => {
-  const db = await readDb();
   const configured = Boolean(process.env.HOME_ASSISTANT_URL && process.env.HOME_ASSISTANT_TOKEN);
-  if (!configured) return { ok: true, configured: false, rooms: [], scenes: [], message: 'Set HOME_ASSISTANT_URL and HOME_ASSISTANT_TOKEN to enable live smart-home controls.' };
+  if (!configured) return { ok: true, configured: false, rooms: [], scenes: [], cameras: [], status: [], groups: [], message: 'Set HOME_ASSISTANT_URL and HOME_ASSISTANT_TOKEN to enable live smart-home controls.' };
   try {
     const base = process.env.HOME_ASSISTANT_URL.replace(/\/$/, '');
     const res = await fetch(`${base}/api/states`, { headers: { Authorization: `Bearer ${process.env.HOME_ASSISTANT_TOKEN}` } });
+    if (!res.ok) return reply.code(res.status).send({ ok: false, configured: true, error: 'Home Assistant states unavailable' });
     const states = await res.json();
-    const useful = states.filter(s => /^(light|switch|climate|sensor|camera)\./.test(s.entity_id)).slice(0, 80);
-    const rooms = Object.values(useful.reduce((acc, s) => {
-      const area = (s.attributes?.area_id || s.attributes?.friendly_name?.split(' ')[0] || 'Home').toString();
-      acc[area] ||= { name: area, devices: [] };
-      acc[area].devices.push({ entity_id: s.entity_id, name: s.attributes?.friendly_name || s.entity_id, state: s.state, type: s.entity_id.split('.')[0] });
-      return acc;
-    }, {}));
-    return { ok: true, configured: true, rooms, scenes: states.filter(s => s.entity_id.startsWith('scene.')).slice(0, 20).map(s => ({ entity_id: s.entity_id, name: s.attributes?.friendly_name || s.entity_id })) };
+    return { ok: true, configured: true, ...summariseHomeAssistant(states) };
   } catch (error) {
     return reply.code(500).send({ ok: false, configured: true, error: error.message });
+  }
+});
+
+app.get('/api/smart-home/camera/:entityId/snapshot', async (req, reply) => {
+  try {
+    const entityId = decodeURIComponent(req.params.entityId);
+    if (!entityId.startsWith('camera.')) return reply.code(400).send({ ok: false, error: 'camera entity_id required' });
+    const base = process.env.HOME_ASSISTANT_URL?.replace(/\/$/, '');
+    if (!base || !process.env.HOME_ASSISTANT_TOKEN) return reply.code(400).send({ ok: false, error: 'Home Assistant not configured' });
+    const res = await fetch(`${base}/api/camera_proxy/${encodeURIComponent(entityId)}`, { headers: { Authorization: `Bearer ${process.env.HOME_ASSISTANT_TOKEN}` } });
+    if (!res.ok) return reply.code(res.status).send({ ok: false, error: 'Camera snapshot unavailable' });
+    const contentType = res.headers.get('content-type') || 'image/jpeg';
+    const body = Buffer.from(await res.arrayBuffer());
+    return reply.type(contentType).send(body);
+  } catch (error) {
+    return reply.code(500).send({ ok: false, error: error.message });
   }
 });
 
