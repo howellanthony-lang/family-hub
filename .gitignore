@@ -6,3 +6,6 @@ dist
 tmp
 logs
 .DS_Store
+*.save
+*~
+*.backup
