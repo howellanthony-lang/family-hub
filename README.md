@@ -106,27 +106,26 @@ Leave Home Assistant values blank until you have a real Home Assistant URL and l
 
 ## Useful checks on the Pi
 
-From PowerShell:
+Run these locally on the Raspberry Pi. Do not SSH into the Pi from automation; use safe, reviewable scripts instead.
 
-```powershell
-ssh mando3@192.168.1.235
+```bash
 cd ~/family-hub-github
 git fetch origin
 git switch v1.9-alpha
 git pull --ff-only
-npm run build:ui
-sudo systemctl restart family-hub-api family-hub-ui
-curl http://localhost:3001/api/health
-curl http://localhost:3001/api/dashboard
-systemctl status family-hub-api family-hub-ui shairport-sync --no-pager
-docker ps --filter name=homeassistant
+bash scripts/pi-deploy.sh
 ```
 
+For verification without deployment:
+
 ```bash
-curl http://localhost:3001/api/health
-curl http://localhost:3001/api/system/readiness
-systemctl status family-hub-api family-hub-ui --no-pager
-journalctl -u family-hub-api -n 80 --no-pager
+bash scripts/pi-verify.sh
+```
+
+If the UI is still calling `/api` on port 5173 after an update:
+
+```bash
+bash scripts/pi-repair-api-url.sh
 ```
 
 ## Go-live blockers
