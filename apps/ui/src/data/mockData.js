@@ -1,4 +1,4 @@
-export const tabs = ['Home', 'Calendar', 'Automation', 'Family', 'Photos', 'Settings'];
+export const tabs = ['Home', 'Calendar', 'Automation', 'Family', 'Photos', 'Smart Home', 'Settings'];
 
 export const mockData = {
   status: [

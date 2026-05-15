@@ -17,6 +17,7 @@ import AutomationScreen from './screens/AutomationScreen';
 import FamilyScreen from './screens/Family';
 import PhotosScreen from './screens/PhotosScreen';
 import SettingsScreen from './screens/Settings';
+import SmartHomeScreen from './screens/SmartHome';
 import Onboarding from './screens/Onboarding';
 
 export default function App() {
@@ -70,7 +71,8 @@ export default function App() {
         {activeTab === 'Automation' && <AutomationScreen mockData={mockData} />}
         {activeTab === 'Family' && <FamilyScreen mockData={mockData} />}
         {activeTab === 'Photos' && <PhotosScreen />}
-        {activeTab === 'Settings' && (
+        {activeTab === 'Smart Home' && <SmartHomeScreen />}
+              {activeTab === 'Settings' && (
           <SettingsScreen
             displayModePreference={displayModePreference}
             setDisplayModePreference={setDisplayModePreference}
