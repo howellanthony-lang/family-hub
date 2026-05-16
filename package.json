@@ -1,6 +1,6 @@
 {
   "name": "family-hub-pi",
-  "version": "1.7.0",
+  "version": "2.1.0",
   "private": true,
   "scripts": {
     "setup": "npm install --prefix apps/api && npm install --prefix apps/ui && npm run build --prefix apps/ui",
@@ -9,7 +9,6 @@
     "start:ui": "python3 -m http.server 5173 --directory apps/ui/dist",
     "update": "bash infra/scripts/update-family-hub.sh",
     "build:ui": "npm run build --prefix apps/ui",
-    "docker:up": "docker compose -f infra/docker-compose.yml up -d",
     "install:pi": "bash install.sh",
     "backup": "bash infra/scripts/backup-family-hub.sh",
     "doctor": "bash infra/scripts/doctor-family-hub.sh",

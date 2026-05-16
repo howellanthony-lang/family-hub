@@ -1,129 +1,141 @@
-# 🏡 Family Hub — Raspberry Pi
+# Family Hub v2.1
 
-A self-contained family organiser wall display for Raspberry Pi.
+A self-contained family wall dashboard for Raspberry Pi.
 
-Family Hub boots into a full-screen touchscreen dashboard for calendar, tasks, meals, groceries, notes, weather, photo frame/screensaver mode and smart-home controls.
+Boot into a full-screen touchscreen display with live calendar, tasks, meals, weather, photos and smart-home controls — all running locally on the Pi.
 
-## Current direction — v1.8
-
-Family Hub is now **Home Assistant-first**.
-
-That means:
-
-- Home Assistant is the main integration layer for smart-home devices, scenes, sensors, presence and calendar entities.
-- Apple/iCloud calendars should ideally connect into Home Assistant, then surface on Family Hub.
-- Direct Apple CalDAV remains an optional fallback, not the main path.
-- Family Hub is the wall-mounted dashboard and household interface.
-
-```text
-Apple/iCloud Calendar + Smart Home Devices
-                ↓
-          Home Assistant
-                ↓
-        Family Hub Dashboard
+```
+Apple Calendar  →  Family Hub  ←  Home Assistant
+     ↓                ↓                ↓
+  Calendar tab    Home screen    Smart Home tab
 ```
 
-## Quick install on Raspberry Pi
+---
+
+## Quick install
 
 ```bash
 git clone https://github.com/howellanthony-lang/family-hub.git ~/family-hub
 cd ~/family-hub
+cp .env.example .env
+nano .env           # fill in your values
+npm run setup
 bash install.sh
 sudo reboot
 ```
 
-After reboot, open:
+After reboot open `http://YOUR_PI_IP:5173`
 
-```text
-http://YOUR_PI_IP:5173
-```
+---
 
-API:
-
-```text
-http://YOUR_PI_IP:3001
-```
-
-## Future update flow
-
-Once the repo is fully aligned with the live Pi build, updates should be:
-
-```bash
-cd ~/family-hub
-git pull
-bash install.sh
-sudo reboot
-```
-
-Until v1.8 is fully verified, keep the current working Pi v1.7 install as the stable local build.
-
-## Recommended hardware
-
-| Item | Recommended |
-|---|---|
-| Pi | Raspberry Pi 4 4GB+ or Raspberry Pi 5 |
-| Storage | 32GB+ microSD or USB SSD |
-| Display | HDMI touchscreen 7–15.6 inch |
-| OS | Raspberry Pi OS Desktop 64-bit |
-| Node.js | v20+ installed by installer |
-
-## Current modules
-
-- Dashboard home screen
-- Calendar events
-- Tasks
-- Meals
-- Grocery list
-- Notes
-- Weather
-- Photo frame / ambient screensaver mode
-- Household setup flow
-- API health endpoint
-- Readiness endpoint
-- Local JSON data store with backups
-- Raspberry Pi kiosk mode
-- Home Assistant integration foundation
-
-## Environment configuration
-
-Do not commit `.env`. Use `.env.example` as the template.
-
-Important values:
+## .env reference
 
 ```env
 PORT=3001
-API_KEYS=
 WEATHER_LOCATION=Wakefield, UK
+
+# Apple Calendar — use an app-specific password, NOT your normal Apple password
+# Generate at: appleid.apple.com → Sign-In and Security → App-Specific Passwords
+APPLE_USERNAME=your@icloud.com
+APPLE_PASSWORD=xxxx-xxxx-xxxx-xxxx
+APPLE_CALENDAR_URL=           # discover with: POST /api/calendar/discover
+
+# Home Assistant
+HOME_ASSISTANT_URL=http://homeassistant.local:8123
+HOME_ASSISTANT_TOKEN=         # Profile → Long-Lived Access Tokens → Create Token
+SMART_HOME_ENABLED=true
+
+# Optional webcal feeds (comma-separated)
 WEBCAL_URLS=
-HOME_ASSISTANT_URL=
-HOME_ASSISTANT_TOKEN=
-APPLE_USERNAME=
-APPLE_PASSWORD=
-APPLE_CALENDAR_URL=
+
+# Optional API key protection
+API_KEYS=
 ```
 
-Leave Home Assistant values blank until you have a real Home Assistant URL and long-lived access token.
+---
 
-## Useful checks on the Pi
+## Screens
+
+| Screen | What it shows |
+|---|---|
+| **Home** | Clock, weather forecast, today's events, open tasks |
+| **Calendar** | Upcoming events, sync Apple Calendar / webcal |
+| **Smart Home** | Live Home Assistant devices — lights, switches, media |
+| **Photos** | Slideshow from your photo folder |
+| **Meals** | Weekly meal planner |
+| **Tasks** | Household task list |
+| **Settings** | Display mode, weather location, system readiness |
+
+---
+
+## API endpoints
+
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/api/health` | Service health + version |
+| GET | `/api/system/readiness` | Configuration checklist |
+| GET | `/api/calendar/config` | Calendar integration status |
+| POST | `/api/calendar/sync` | Pull events from Apple Calendar + webcal |
+| GET | `/api/calendar/events` | All stored events |
+| POST | `/api/calendar/discover` | Find your Apple CalDAV calendar URLs |
+| GET | `/api/weather` | Live weather via Open-Meteo |
+| GET | `/api/photos` | List photos in PHOTO_DIR |
+| GET | `/api/homekit/summary` | HA entity summary |
+| GET | `/api/homekit/devices` | Controllable devices |
+| GET | `/api/homekit/cameras` | Camera entities |
+| POST | `/api/homekit/toggle` | Toggle a device on/off |
+| POST | `/api/scenes/:scene` | Activate a Home Assistant scene |
+| GET | `/api/tasks` | Household tasks |
+| GET | `/api/meals/week` | Weekly meal plan |
+
+---
+
+## Scripts
 
 ```bash
-curl http://localhost:3001/api/health
-curl http://localhost:3001/api/system/readiness
-systemctl status family-hub-api family-hub-ui --no-pager
-journalctl -u family-hub-api -n 80 --no-pager
+npm run setup        # install deps + build UI
+npm run build:ui     # rebuild UI only
+npm run update       # git pull + rebuild + restart services
+npm run doctor       # check services, .env, disk, Node version
+npm run smoke:test   # hit every API endpoint and report pass/fail
 ```
 
-## Go-live blockers
+---
 
-Before daily household use:
+## Systemd services
 
-- Home Assistant connection tested, if smart-home control is needed.
-- API key configured before remote access.
-- Dashboard survives reboot.
-- Screensaver/ambient mode tested.
-- Calendar source confirmed.
-- 24-hour stability test completed.
+| Service | Description |
+|---|---|
+| `family-hub-api` | Fastify API on port 3001 |
+| `family-hub-ui` | Static UI served on port 5173 |
 
-## Important
+```bash
+sudo systemctl status family-hub-api
+sudo systemctl restart family-hub-api family-hub-ui
+journalctl -u family-hub-api -f
+```
 
-Use **Tasks**, not Chores, across the product.
+---
+
+## Apple Calendar setup
+
+1. Go to **appleid.apple.com** → Sign-In and Security → App-Specific Passwords
+2. Create a password named `family-hub` — copy the `xxxx-xxxx-xxxx-xxxx` token
+3. Add `APPLE_USERNAME` and `APPLE_PASSWORD` to `.env`
+4. Restart the API: `sudo systemctl restart family-hub-api`
+5. Discover your calendar URL: `curl -X POST http://localhost:3001/api/calendar/discover`
+6. Copy the URL into `APPLE_CALENDAR_URL=` in `.env` and restart again
+7. Sync: `curl -X POST http://localhost:3001/api/calendar/sync`
+
+---
+
+## Home Assistant setup
+
+1. Open Home Assistant → Profile (bottom-left) → Long-Lived Access Tokens → Create Token
+2. Add to `.env`:
+   ```
+   HOME_ASSISTANT_URL=http://homeassistant.local:8123
+   HOME_ASSISTANT_TOKEN=your_token
+   ```
+3. Restart: `sudo systemctl restart family-hub-api`
+4. Test: `curl http://localhost:3001/api/homekit/summary`

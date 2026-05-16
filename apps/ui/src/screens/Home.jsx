@@ -1,79 +1,90 @@
 import { useEffect, useState } from 'react';
-import GlassCard from '../components/GlassCard';
-import StatusChip from '../components/StatusChip';
-import CameraCard from '../components/CameraCard';
-import SceneCard from '../components/SceneCard';
-import RoomCard from '../components/RoomCard';
-import SectionHeader from '../components/SectionHeader';
+import { API_BASE } from '../data/mockData';
 import { getGreeting } from '../utils/ambientMode';
 
-function useMinuteClock() {
+function useClock() {
   const fmt = () => new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
   const [time, setTime] = useState(fmt);
-  useEffect(() => {
-    const id = setInterval(() => setTime(fmt()), 60000);
-    return () => clearInterval(id);
-  }, []);
+  useEffect(() => { const id = setInterval(() => setTime(fmt()), 30000); return () => clearInterval(id); }, []);
   return time;
 }
 
-export default function HomeScreen({ mockData, today, ambientMode }) {
-  const time = useMinuteClock();
+export default function HomeScreen({ today, ambientMode }) {
+  const time = useClock();
+  const [weather, setWeather] = useState(null);
+  const [events, setEvents] = useState([]);
+  const [tasks, setTasks] = useState([]);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/weather`).then(r => r.json()).then(setWeather).catch(() => {});
+    fetch(`${API_BASE}/api/events`).then(r => r.json()).then(data => {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      setEvents((Array.isArray(data) ? data : []).filter(e => (e.start || '').startsWith(todayStr)).slice(0, 5));
+    }).catch(() => {});
+    fetch(`${API_BASE}/api/tasks`).then(r => r.json()).then(data =>
+      setTasks((Array.isArray(data) ? data : []).filter(t => !t.done).slice(0, 5))
+    ).catch(() => {});
+  }, []);
+
   return (
-    <div className="screen home-screen page-enter">
-      <header className="hero-row">
+    <div className="screen page-enter">
+      <div className="hero-row">
         <div>
           <p className="eyebrow">Family Hub • {ambientMode}</p>
           <h1>{getGreeting()}</h1>
-          <p className="context-line">{today} • 18°C • 2 events today • Dinner planned</p>
+          <p className="context-line">{today}{weather?.current ? ` • ${weather.current.temperature}°C ${weather.current.condition}` : ''}</p>
         </div>
-        <GlassCard className="time-card">
+        <div className="glass-card time-card">
           <span>Now</span>
           <strong>{time}</strong>
-        </GlassCard>
-      </header>
-
-      <section className="status-grid">
-        {mockData.status.map(([label, value, detail]) => (
-          <StatusChip key={label} label={label} value={value} detail={detail} />
-        ))}
-      </section>
+        </div>
+      </div>
 
       <div className="content-grid">
-        <section className="main-column">
-          <SectionHeader title="Cameras" action="View all" />
-          <div className="camera-grid">
-            {mockData.cameras.map((camera) => <CameraCard key={camera[0]} camera={camera} />)}
-          </div>
+        <div className="main-column">
+          {weather?.daily && (
+            <div className="glass-card">
+              <div className="section-header"><h2>Forecast</h2></div>
+              <div className="forecast-strip">
+                {weather.daily.slice(0, 5).map(d => (
+                  <div key={d.date}>
+                    <small>{new Date(d.date).toLocaleDateString('en-GB', { weekday: 'short' })}</small>
+                    <span>{d.condition}</span>
+                    <b>{d.max}°</b>
+                    <span>{d.min}°</span>
+                    <small>{d.rain}% rain</small>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
-          <SectionHeader title="Scenes" action="Edit" />
-          <div className="scene-row">
-            {mockData.scenes.map((scene) => <SceneCard key={scene} title={scene} />)}
+          <div className="glass-card">
+            <div className="section-header"><h2>Today's events</h2></div>
+            {events.length === 0
+              ? <p className="muted">No events today. Sync your calendar in the Calendar tab.</p>
+              : <div className="timeline">
+                  {events.map(e => (
+                    <div className="timeline-row" key={e.id}>
+                      <span>{e.start ? new Date(e.start).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : 'All day'}</span>
+                      <b>{e.title}</b>
+                      <em>{e.location || ''}</em>
+                    </div>
+                  ))}
+                </div>
+            }
           </div>
+        </div>
 
-          <SectionHeader title="Rooms" action="All rooms" />
-          <div className="room-grid">
-            {mockData.rooms.map((room) => <RoomCard key={room[0]} room={room} />)}
+        <div className="side-column">
+          <div className="glass-card">
+            <div className="section-header"><h2>Tasks</h2></div>
+            {tasks.length === 0
+              ? <p className="muted">All clear.</p>
+              : <ul className="clean-list">{tasks.map(t => <li key={t.id}>{t.title}</li>)}</ul>
+            }
           </div>
-        </section>
-
-        <aside className="side-column">
-          <GlassCard className="today-card">
-            <p className="eyebrow">Today</p>
-            <h2>Household summary</h2>
-            <ul className="clean-list">
-              <li>Baby scan at 14:30</li>
-              <li>Rain expected around 18:00</li>
-              <li>Chicken tacos planned for dinner</li>
-              <li>3 chores still need doing</li>
-            </ul>
-          </GlassCard>
-          <GlassCard>
-            <p className="eyebrow">Quiet nudge</p>
-            <h2>Good Night is ready</h2>
-            <p className="muted">Lights, nursery status and tomorrow preview can be grouped into one evening routine.</p>
-          </GlassCard>
-        </aside>
+        </div>
       </div>
     </div>
   );

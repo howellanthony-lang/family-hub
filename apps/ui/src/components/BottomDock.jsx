@@ -3,11 +3,11 @@ export default function BottomDock({ tabs, activeTab, setActiveTab }) {
     <nav className="bottom-dock">
       {tabs.map((tab) => (
         <button
-          key={tab}
-          className={activeTab === tab ? 'active' : ''}
-          onClick={() => setActiveTab(tab)}
+          key={tab.id}
+          className={activeTab === tab.id ? 'active' : ''}
+          onClick={() => setActiveTab(tab.id)}
         >
-          {tab}
+          {tab.label}
         </button>
       ))}
     </nav>

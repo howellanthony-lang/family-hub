@@ -1,59 +1,76 @@
-import PageTitle from '../components/PageTitle';
-import SetupCard from '../components/SetupCard';
-import GlassCard from '../components/GlassCard';
-import AppleCalendarSetup from '../components/AppleCalendarSetup';
+import { useEffect, useState } from 'react';
+import { API_BASE } from '../data/mockData';
 
-const displayModes = [
-  ['auto', 'Auto'],
-  ['day', 'Day'],
-  ['night', 'Night'],
-];
+const MODES = ['auto', 'day', 'night'];
 
 export default function SettingsScreen({ displayModePreference, setDisplayModePreference }) {
-  return (
-    <div className="screen page-enter">
-      <PageTitle
-        title="Settings"
-        subtitle="Local-first setup and trusted household access."
-      />
+  const [readiness, setReadiness] = useState(null);
+  const [settings, setSettings] = useState(null);
 
-      <GlassCard>
-        <p className="eyebrow">Display</p>
-        <h2>Display Mode</h2>
-        <p className="muted">
-          Choose Auto for time-based ambience, Day for a brighter kitchen display, or Night for a calmer low-light screen.
-        </p>
+  useEffect(() => {
+    fetch(`${API_BASE}/api/system/readiness`).then(r => r.json()).then(setReadiness).catch(() => {});
+    fetch(`${API_BASE}/api/settings`).then(r => r.json()).then(setSettings).catch(() => {});
+  }, []);
+
+  async function saveSetting(key, value) {
+    const updated = { ...settings, [key]: value };
+    setSettings(updated);
+    await fetch(`${API_BASE}/api/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [key]: value }) });
+  }
+
+  return (
+    <div className="screen page-enter settings">
+      <div className="section-header" style={{ marginBottom: 20 }}><h2>Settings</h2></div>
+
+      <div className="settings-section">
+        <h3>Display mode</h3>
         <div className="mode-toggle">
-          {displayModes.map(([value, label]) => (
-            <button
-              key={value}
-              className={displayModePreference === value ? 'active' : ''}
-              onClick={() => setDisplayModePreference(value)}
-            >
-              {label}
+          {MODES.map(m => (
+            <button key={m} className={displayModePreference === m ? 'active' : ''} onClick={() => setDisplayModePreference(m)}>
+              {m.charAt(0).toUpperCase() + m.slice(1)}
             </button>
           ))}
         </div>
-      </GlassCard>
+      </div>
 
-      <AppleCalendarSetup />
+      {settings && (
+        <div className="settings-section">
+          <h3>Location</h3>
+          <label>
+            Weather location
+            <input
+              defaultValue={settings.weatherLocation || ''}
+              onBlur={e => saveSetting('weatherLocation', e.target.value)}
+              placeholder="e.g. Wakefield, UK"
+            />
+          </label>
+        </div>
+      )}
 
-      <div className="quad-grid">
-        <SetupCard
-          title="Admin PIN"
-          text="Protect settings, integrations, backups and paired devices."
-        />
+      {readiness && (
+        <div className="settings-section">
+          <div className="readiness-head">
+            <h3>System readiness</h3>
+            <span className="muted">Score: {readiness.score}%</span>
+          </div>
+          <div className="release-checks">
+            {readiness.checks?.map(c => (
+              <div key={c.id} className={`release-row${c.ok ? '' : ' warn'}`}>
+                <span>{c.ok ? '✓' : '!'}</span>
+                <div>
+                  <b>{c.label}</b>
+                  <small>{c.detail}</small>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
-        <SetupCard
-          title="Pair a phone"
-          text="Scan a QR code and approve with the admin PIN."
-        />
-
-        <SetupCard
-          title="Privacy"
-          text="Local-first by default. Remote access and integrations stay optional."
-          button="Learn more"
-        />
+      <div className="settings-section">
+        <h3>About</h3>
+        <p className="muted">Family Hub v2.1.0 · Raspberry Pi wall dashboard</p>
+        <p className="muted">API: <a href={`${API_BASE}/api/health`} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>{API_BASE}/api/health</a></p>
       </div>
     </div>
   );
