@@ -1,7 +1,8 @@
 .env
-node_modules/
-apps/api/data/
-apps/ui/dist/
-*.log
+node_modules
+apps/api/data
+apps/ui/dist
+dist
+tmp
+logs
 .DS_Store
-tmp/
